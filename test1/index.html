@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>撿雞蛋 - 撿雞蛋遊戲</title>
+    <link rel="stylesheet" href="css/game.css">
+</head>
+<body>
+    <!-- 開始畫面 -->
+    <div id="startScreen" class="screen active">
+        <div class="screen-content">
+            <h1>「蛋」願你健康</h1>
+            <h2>撿雞蛋遊戲</h2>
+            <div class="rules">
+                <h2 style="text-align: center; margin-bottom: 15px;">遊戲規則</h2>
+                <ul>
+                    <li>⏱️ 您有 30 秒的時間</li>
+                    <li>🌟 收集金色雞蛋：+2 分</li>
+                    <li>💀 避免灰色蛋：-1 分</li>
+                    <li>🎯 目標：收集 15 個蛋</li>
+                    <li>👐 使用手部動作來收集蛋</li>
+                    <li>⬇️ 需要先蹲下（膝蓋彎曲）才能撿蛋</li>
+                    <li>👕 請穿著合適的服裝，避免偵測失敗</li>
+                </ul>
+            </div>
+            <button id="startBtn" class="btn-primary">開始遊戲</button>
+        </div>
+    </div>
+    
+    <!-- 遊戲畫面 -->
+    <div id="gameScreen" class="screen">
+        <div class="game-layout">
+            <div class="video-section">
+                <video id="video" playsinline autoplay muted></video>
+                <canvas id="canvas"></canvas>
+                <div id="gameArea"></div>
+            </div>
+            <div class="info-section">
+                <div class="stat-item status-priority">
+                    <span class="label">狀態</span>
+                    <span class="value" id="statusValue">🎮 遊戲中</span>
+                </div>
+                <div class="stat-item">
+                    <span class="label">分數</span>
+                    <span class="value" id="scoreValue">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="label">已收集</span>
+                    <span class="value" id="collectedValue">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="label">剩餘時間</span>
+                    <span class="value" id="timeValue">30</span>
+                </div>
+                <div class="stat-item">
+                    <span class="label">還需要</span>
+                    <span class="value" id="leftValue">15</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 結束畫面 -->
+    <div id="endScreen" class="screen">
+        <div class="screen-content">
+            <h1>🎉 遊戲結束</h1>
+            <div class="result-box">
+                <p>最終分數: <strong id="finalScore">0</strong> 分</p>
+                <p>收集數量: <strong id="finalCollected">0</strong> 個</p>
+                <p id="message">加油下次會更好！</p>
+                <p id="bonusRedeem"></p>
+                <p id="finishedAtLine">結束時間: <strong id="finishedAt">----/--/-- --:--:--</strong></p>
+            </div>
+            <button id="restartBtn" class="btn-primary">再玩一次</button>
+        </div>
+    </div>
+
+    <!-- MediaPipe 依賴 -->
+    <script>
+        // 動態加載 MediaPipe 腳本
+        function loadScript(src, callback) {
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = callback;
+            script.onerror = function() {
+                console.warn('Failed to load script:', src);
+                // 嘗試備用 CDN
+                if (src.includes('cdn.jsdelivr.net')) {
+                    const backupSrc = src.replace('cdn.jsdelivr.net', 'unpkg.com');
+                    console.log('Trying backup CDN:', backupSrc);
+                    loadScript(backupSrc, callback);
+                } else if (src.includes('unpkg.com')) {
+                    const fallbackSrc = src.replace('unpkg.com', 'cdn.skypack.dev');
+                    console.log('Trying fallback CDN:', fallbackSrc);
+                    loadScript(fallbackSrc, callback);
+                } else {
+                    console.error('Failed to load script from all CDNs:', src);
+                    // 即使失敗也繼續，給用戶一個機會
+                    callback();
+                }
+            };
+            document.head.appendChild(script);
+        }
+
+        // 加載依賴
+        let scriptsLoaded = 0;
+        const totalScripts = 2;
+        let gameScriptLoaded = false;
+
+        function tryInitializeGame() {
+            if (window.gameInitialized) return;
+
+            if (gameScriptLoaded && typeof initializeGame === 'function') {
+                initializeGame();
+            }
+        }
+
+        function onScriptLoaded() {
+            scriptsLoaded++;
+            console.log(`Script loaded: ${scriptsLoaded}/${totalScripts}`);
+            if (scriptsLoaded === totalScripts) {
+                console.log('All MediaPipe scripts loaded successfully');
+                window.mediaPipeLoaded = true;
+                // 如果遊戲腳本已經加載，初始化遊戲
+                tryInitializeGame();
+            }
+        }
+
+        function loadGameScript() {
+            const gameScript = document.createElement('script');
+            gameScript.src = 'js/game-engine.js';
+            gameScript.onload = function() {
+                console.log('Game script loaded successfully');
+                gameScriptLoaded = true;
+                // 無論 MediaPipe 是否加載完成，都先嘗試初始化
+                if (typeof initializeGame === 'function') {
+                    tryInitializeGame();
+                } else {
+                    console.error('initializeGame function not found');
+                    fallbackInit();
+                }
+            };
+            gameScript.onerror = function() {
+                console.error('Failed to load game script');
+                fallbackInit();
+            };
+            document.head.appendChild(gameScript);
+        }
+
+        // 備用初始化函數
+        function fallbackInit() {
+            console.log('🔧 使用備用初始化');
+            // 顯示開始畫面
+            const startScreen = document.getElementById('startScreen');
+            if (startScreen) {
+                startScreen.classList.add('active');
+                console.log('✅ 開始畫面已顯示');
+            }
+
+            // 添加基本事件監聽
+            const startBtn = document.getElementById('startBtn');
+            if (startBtn) {
+                startBtn.addEventListener('click', function() {
+                    alert('遊戲腳本加載失敗，請檢查網路連接後重新整理頁面');
+                });
+            }
+        }
+
+        // 頁面加載時顯示調試信息
+        window.addEventListener('load', function() {
+            console.log('📄 頁面加載完成');
+            console.log('📊 當前屏幕尺寸:', window.innerWidth, 'x', window.innerHeight);
+
+            // 檢查關鍵元素
+            const elements = ['startScreen', 'gameScreen', 'endScreen', 'video', 'canvas'];
+            elements.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    console.log(`✅ 找到元素: ${id}`);
+                    // 檢查元素是否可見
+                    const style = window.getComputedStyle(el);
+                    console.log(`   顯示狀態: ${style.display}, 可見性: ${style.visibility}`);
+                } else {
+                    console.error(`❌ 找不到元素: ${id}`);
+                }
+            });
+
+            // 強制顯示開始畫面
+            setTimeout(() => {
+                const startScreen = document.getElementById('startScreen');
+                if (startScreen) {
+                    startScreen.style.display = 'flex';
+                    console.log('🔧 強制顯示開始畫面');
+                }
+            }, 1000);
+        });
+
+        // 開始加載腳本
+        loadGameScript();
+        loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js', onScriptLoaded);
+        loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js', onScriptLoaded);
+
+        // 防呆：若 5 秒後仍未完成初始化，啟用備用流程
+        setTimeout(() => {
+            if (!window.gameInitialized) {
+                console.warn('Initialization timeout, using fallback init');
+                fallbackInit();
+            }
+        }, 5000);
+    </script>
+</body>
+</html>

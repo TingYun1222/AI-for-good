@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>攝像頭測試</title>
+</head>
+<body>
+    <h1>攝像頭測試</h1>
+    <video id="testVideo" autoplay playsinline style="width: 640px; height: 480px; border: 1px solid black;"></video>
+    <br>
+    <button onclick="testCamera()">測試攝像頭</button>
+    <div id="status"></div>
+
+    <script>
+        async function testCamera() {
+            const status = document.getElementById('status');
+            const video = document.getElementById('testVideo');
+
+            try {
+                status.textContent = '請求攝像頭權限...';
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 640, height: 480 }
+                });
+
+                status.textContent = '✅ 攝像頭權限已獲取，正在播放...';
+                video.srcObject = stream;
+
+                video.onloadedmetadata = () => {
+                    status.textContent = `✅ 攝像頭正常工作！尺寸: ${video.videoWidth}x${video.videoHeight}`;
+                };
+
+            } catch (error) {
+                status.textContent = `❌ 攝像頭錯誤: ${error.message}`;
+                console.error('Camera error:', error);
+            }
+        }
+    </script>
+</body>
+</html>

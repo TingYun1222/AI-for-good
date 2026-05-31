@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>簡單測試</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        #testVideo {
+            width: 640px;
+            height: 480px;
+            background: #000;
+            border: 1px solid #ccc;
+        }
+        #testCanvas {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 640px;
+            height: 480px;
+            border: 2px solid red;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎮 簡單測試頁面</h1>
+
+    <div class="test-section">
+        <h2>1. 基本元素測試</h2>
+        <button onclick="testElements()">檢查元素</button>
+        <div id="elementTest"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. 攝像頭測試</h2>
+        <button onclick="testCamera()">測試攝像頭</button>
+        <div id="cameraTest"></div>
+        <div style="position: relative; display: inline-block;">
+            <video id="testVideo" autoplay playsinline muted></video>
+            <canvas id="testCanvas"></canvas>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. MediaPipe 測試</h2>
+        <button onclick="testMediaPipe()">測試 MediaPipe</button>
+        <div id="mediaPipeTest"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. 完整遊戲測試</h2>
+        <button onclick="testGame()">測試遊戲</button>
+        <div id="gameTest"></div>
+    </div>
+
+    <script>
+        function testElements() {
+            const result = document.getElementById('elementTest');
+            const elements = ['startScreen', 'gameScreen', 'endScreen', 'video', 'canvas'];
+
+            let output = '<h3>元素檢查結果：</h3>';
+            elements.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    output += `✅ ${id}: 找到<br>`;
+                } else {
+                    output += `❌ ${id}: 找不到<br>`;
+                }
+            });
+
+            result.innerHTML = output;
+        }
+
+        async function testCamera() {
+            const result = document.getElementById('cameraTest');
+            const video = document.getElementById('testVideo');
+
+            try {
+                result.innerHTML = '請求攝像頭權限...';
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 640, height: 480 }
+                });
+
+                video.srcObject = stream;
+                result.innerHTML = '✅ 攝像頭正常工作！';
+
+                // 測試畫布繪圖
+                const canvas = document.getElementById('testCanvas');
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = 'red';
+                ctx.fillRect(10, 10, 50, 50);
+
+            } catch (error) {
+                result.innerHTML = `❌ 攝像頭錯誤: ${error.message}`;
+                console.error('Camera error:', error);
+            }
+        }
+
+        function testMediaPipe() {
+            const result = document.getElementById('mediaPipeTest');
+
+            if (typeof window.Pose !== 'undefined') {
+                result.innerHTML = '✅ MediaPipe Pose 已加載';
+            } else {
+                result.innerHTML = '❌ MediaPipe Pose 未加載';
+            }
+
+            if (typeof window.Camera !== 'undefined') {
+                result.innerHTML += '<br>✅ Camera Utils 已加載';
+            } else {
+                result.innerHTML += '<br>❌ Camera Utils 未加載';
+            }
+        }
+
+        function testGame() {
+            const result = document.getElementById('gameTest');
+
+            if (typeof window.gameEngine !== 'undefined' && window.gameEngine) {
+                result.innerHTML = '✅ 遊戲引擎已初始化';
+            } else {
+                result.innerHTML = '❌ 遊戲引擎未初始化';
+            }
+
+            if (typeof initializeGame === 'function') {
+                result.innerHTML += '<br>✅ initializeGame 函數存在';
+            } else {
+                result.innerHTML += '<br>❌ initializeGame 函數不存在';
+            }
+        }
+
+        // 頁面加載時自動檢查
+        window.addEventListener('load', function() {
+            console.log('測試頁面加載完成');
+            testElements();
+        });
+    </script>
+</body>
+</html>
